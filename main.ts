@@ -19,8 +19,10 @@ for (let o = 0x10; o <= 0x22; o++) pushes[o] = 1;
 pushes[1] = 1; pushes[2] = 1; pushes[4] = 2; pushes[5] = 2;
 pushes[6] = 3; pushes[7] = 3; pushes[0x40] = 1; pushes[0x52] = 1;
 
-const valid = (op: number): boolean => op <= 7 || (op >= 0x10 && op <= 0x22) ||
-  (op >= 0x30 && op <= 0x34) || (op >= 0x40 && op <= 0x41) || (op >= 0x50 && op <= 0x53);
+// Validity as a table, built once: one lookup per step, no per-opcode call.
+const validTable = new Uint8Array(256);
+for (let o = 0; o < 256; o++) validTable[o] = (o <= 7 || (o >= 0x10 && o <= 0x22) ||
+  (o >= 0x30 && o <= 0x34) || (o >= 0x40 && o <= 0x41) || (o >= 0x50 && o <= 0x53)) ? 1 : 0;
 
 // Run one program; returns [bytes written, exit code (trap code included)].
 function run(p: Uint8Array, inp: Uint8Array): [Uint8Array, number] {
@@ -37,7 +39,7 @@ function run(p: Uint8Array, inp: Uint8Array): [Uint8Array, number] {
     if (steps === 1000000) return end(10);
     if (pc < 0 || pc >= n) return end(9);
     const op = p[pc];
-    if (!valid(op)) return end(5);
+    if (!validTable[op]) return end(5);
     const im = op === 1 ? 1 : op === 2 ? 4 : (op >= 0x30 && op <= 0x33 ? 2 : 0);
     if (pc + im >= n) return end(9);
     steps++;
